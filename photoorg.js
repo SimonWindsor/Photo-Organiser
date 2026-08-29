@@ -1,8 +1,9 @@
 const exifr = require('exifr'); // For obtaining photo metadata
-const ffmpeg = require('fluent-ffmpeg');
+const ffmpeg = require('fluent-ffmpeg'); // For working with videos
 const fs = require('fs/promises');
 const path = require('path');
 const readline = require('readline');
+const { getFolder } = require('./utils/browserMenu.js')
 
 // Input/output handler
 const rl = readline.createInterface({
@@ -32,15 +33,15 @@ async function getTakenDate(filePath) {
        return DateTimeOriginal;
     }
   } catch (err) {
-    console.error('err');
-    console.log(`${filePath} is probably a video`)
+    console.error(err);
+    console.log(`${filePath} may not be an image`)
   }
 
-  // This dhould work for videos
+  // This should work for videos
   try {
     const videoDate = await getVideoTakenDate(filePath);
     if (videoDate instanceof Date && !isNaN(videoDate)) {
-      return parsed;
+      return videoDate;
     }
   } catch (err) {
     console.error(err);
@@ -74,7 +75,7 @@ async function getFiles(dir) {
   return files;
 }
 
-// FOr moving files into date folders
+// For moving files into date folders
 async function moveFile(dir, date, file, filePath) {
   try{
     // Obtain year and month from Date object and put in according folder
@@ -130,7 +131,7 @@ async function organiseUnknown() {
 
   const files = await getFiles(unknownDir);
 
-  for (file of files) {
+  for (const file of files) {
     try {
       const filePath = path.join(unknownDir, file);
       const date = await getModifiedDate(filePath);
@@ -148,30 +149,36 @@ async function organiseUnknown() {
   }
 }
 
-(async () => {
-  rl.question(`Pick an Option
+function showMenu() {
+  rl.question(`Pick an Option:
     1. Move all files in base folder into dated folders based on metadata (date taken)
-    2. Move files in "unknown dates" folder based on their sate modifed
-    3. Exit
-    `, (selection) => {
-      switch(selection.trim()) {
-        case '1':
-          organisePhotos();
-          rl.close();
-          break;
-        case '2':
-          organiseUnknown();
-          rl.close();
-          break;
-        case '3':
-          running = false;
-          rl.close();
-          process.exit();
-        default:
-          console.log('Invalid selection');
-          rl.close();
-      }
+    2. Move files in "unknown dates" folder based on their date modifed
+    3. Select source folder for photos to be organised
+    4. Select destination folder for organised photos
+    5. Exit
+    `, async (selection) => {
+    switch(selection.trim()) {
+      case '1':
+        await organisePhotos();
+        break;
+      case '2':
+        await organiseUnknown();
+        break;
+      case '3':
+        break;
+      case '4':
+        break;
+      case '5':
+        console.log('Exiting program. Goodbye.');
+        rl.close();
+        return;
+      default:
+        console.log('Invalid selection');
+    }
+    showMenu();        
   });
-})()
+}
+
+showMenu();
 
 

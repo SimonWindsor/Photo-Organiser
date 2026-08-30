@@ -77,7 +77,7 @@ async function getFiles(dir) {
 
 // For moving files into date folders
 async function moveFile(dir, date, file, filePath) {
-  try{
+  try {
     // Obtain year and month from Date object and put in according folder
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

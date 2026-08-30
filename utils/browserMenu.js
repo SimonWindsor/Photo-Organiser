@@ -42,7 +42,7 @@ function getFolder(dir) {
       }
 
       if (key.name === 'b') {
-        currentDir = path.join(currentDir, './..');
+        currentDir = path.dirname(currentDir);
         folders = await getInnerFolders(currentDir);
 
         selectedIndex = 0;

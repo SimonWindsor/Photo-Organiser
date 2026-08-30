@@ -1,4 +1,4 @@
 {
   "sourcePath": ".\\input",
-  "organisingPath": ".\\organising"
+  "destinationPath": ".\\organising"
 }

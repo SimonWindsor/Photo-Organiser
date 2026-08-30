@@ -5,6 +5,25 @@ const path = require('path');
 const readline = require('readline');
 const { getFolder } = require('./utils/browserMenu.js')
 
+const configPath = path.join(__dirname, 'config.json');
+
+async function main () {
+  const config = await loadConfig();
+  showMenu(config);
+}
+
+async function loadConfig() {
+  const configText = await fs.readFile(configPath, 'utf8');
+  return JSON.parse(configText);
+}
+
+async function saveConfig(config) {
+  await fs.writeFile(
+    configPath,
+    JSON.stringify(config, null, 2)
+  );
+}
+
 // Input/output handler
 const rl = readline.createInterface({
   input: process.stdin,
@@ -149,7 +168,7 @@ async function organiseUnknown() {
   }
 }
 
-function showMenu() {
+function showMenu(config) {
   rl.question(`Pick an Option:
     1. Move all files in base folder into dated folders based on metadata (date taken)
     2. Move files in "unknown dates" folder based on their date modifed
@@ -164,10 +183,24 @@ function showMenu() {
       case '2':
         await organiseUnknown();
         break;
-      case '3':
+      case '3': {
+        const sourceFolder = await getFolder(config.sourcePath);
+        if (sourceFolder) {
+          config.sourcePath = sourceFolder;
+          await saveConfig(config);
+        }
+        
         break;
-      case '4':
+      }
+      case '4': {
+        const destinationFolder = await getFolder(config.destinationPath);
+        if (destinationFolder) {
+          config.destinationPath = destinationFolder;
+          await saveConfig(config);
+        }
+
         break;
+      }
       case '5':
         console.log('Exiting program. Goodbye.');
         rl.close();
@@ -175,10 +208,10 @@ function showMenu() {
       default:
         console.log('Invalid selection');
     }
-    showMenu();        
+    showMenu(config);        
   });
 }
 
-showMenu();
+main();
 
 

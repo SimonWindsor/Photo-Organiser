@@ -7,28 +7,25 @@ const { getFolder } = require('./utils/browserMenu.js')
 
 const configPath = path.join(__dirname, 'config.json');
 
+// Main function - initialises config and displays menu on run
 async function main () {
   const config = await loadConfig();
   showMenu(config);
 }
 
+// For obtaining cofig- i.e stored folder paths for photo organising
 async function loadConfig() {
   const configText = await fs.readFile(configPath, 'utf8');
   return JSON.parse(configText);
 }
 
+// For saving selected folder paths
 async function saveConfig(config) {
   await fs.writeFile(
     configPath,
     JSON.stringify(config, null, 2)
   );
 }
-
-// Input/output handler
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
 
 // Gets data taken from video metadata
 async function getVideoTakenDate(filePath) {
@@ -101,7 +98,7 @@ async function moveFile(dir, date, file, filePath) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const monthDir = path.join(dir, String(year), `${year}-${month}`);
-    await fs.mkdir(monthDir, { recursive: true});
+    await fs.mkdir(monthDir, { recursive: true });
     const destPath = path.join(monthDir, file)
     await fs.rename(filePath, destPath);
     console.log(`${file} moved to ${monthDir}`);
@@ -115,15 +112,16 @@ async function moveFile(dir, date, file, filePath) {
   photos into a year/year-month folder system. Files are moved to "unknown
   dates" folder if dates are not obtained from meta data
 */
-async function organisePhotos() {
-  const baseDir = path.resolve(__dirname, './../');
-  const fallBackDir = path.join(baseDir, 'unknown dates');
+async function organisePhotos(config) {
+  const sourceDir = path.resolve(__dirname, config.sourcePath);
+  const destinationDir  = path.resolve(__dirname, config.destinationPath);
+  const fallBackDir = path.join(destinationDir , 'unknown dates');
 
-  const files = await getFiles(baseDir);
+  const files = await getFiles(sourceDir);
   
   for(const file of files) {
     try {
-      const filePath = path.join(baseDir, file);
+      const filePath = path.join(sourceDir, file);
       const date = await getTakenDate(filePath);
       console.log(date);
 
@@ -136,7 +134,7 @@ async function organisePhotos() {
         continue;
       }
       
-      await moveFile(baseDir, date, file, filePath);
+      await moveFile(destinationDir, date, file, filePath);
     } catch (err) {
       console.error(`CAN'T PROCESS ${file}: ${err}`)
     }
@@ -144,9 +142,9 @@ async function organisePhotos() {
 };
 
 // Allows files from "unknown dates" folder to be moved based on date modified
-async function organiseUnknown() {
-  const baseDir = path.resolve(__dirname, './../');
-  const unknownDir = path.resolve(baseDir, 'unknown dates');
+async function organiseUnknown(config) {
+  const destinationDir  = path.resolve(__dirname, config.destinationPath);
+  const unknownDir = path.resolve(destinationDir , 'unknown dates');
 
   const files = await getFiles(unknownDir);
 
@@ -161,39 +159,61 @@ async function organiseUnknown() {
         continue;
       }
 
-      await moveFile(baseDir, date, file, filePath);
+      await moveFile(destinationDir, date, file, filePath);
     } catch (err) {
       console.error(`CAN'T PROCESS ${file}: ${err}`)
     }
   }
 }
 
+// FOr displaying basic operations menu
 function showMenu(config) {
+  /* Input/output handler which is Created in this function as  menu options
+    will require it to be closed. It can reopen here when menu returns
+  */
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
   rl.question(`Pick an Option:
     1. Move all files in base folder into dated folders based on metadata (date taken)
     2. Move files in "unknown dates" folder based on their date modifed
     3. Select source folder for photos to be organised
     4. Select destination folder for organised photos
-    5. Exit
+    5. Show current source/destination folders
+    6. Move organised folders back to source folder
+    7. Exit
     `, async (selection) => {
     switch(selection.trim()) {
       case '1':
-        await organisePhotos();
+        rl.close();
+        await organisePhotos(config);
         break;
+      
       case '2':
-        await organiseUnknown();
+        rl.close();
+        await organiseUnknown(config);
         break;
+      
       case '3': {
-        const sourceFolder = await getFolder(config.sourcePath);
+        rl.close();
+        const sourceFolder = await getFolder('D:\\');
+        console.clear();
+
         if (sourceFolder) {
           config.sourcePath = sourceFolder;
           await saveConfig(config);
         }
-        
+
         break;
       }
+      
       case '4': {
-        const destinationFolder = await getFolder(config.destinationPath);
+        rl.close();
+        const destinationFolder = await getFolder('D:\\');
+        console.clear();
+
         if (destinationFolder) {
           config.destinationPath = destinationFolder;
           await saveConfig(config);
@@ -201,7 +221,21 @@ function showMenu(config) {
 
         break;
       }
-      case '5':
+      
+      case '5': {
+        rl.close();
+        console.log(`Source directory: ${config.sourcePath}`);
+        console.log(`Desintation directory: ${config.destinationPath}`);
+        break;
+      }
+
+      case '6': {
+        rl.close()
+        // will code shortly
+        break;
+      }
+
+      case '7':
         console.log('Exiting program. Goodbye.');
         rl.close();
         return;

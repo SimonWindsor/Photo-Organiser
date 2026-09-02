@@ -19,7 +19,6 @@ function getFolder(dir) {
     function cleanup() {
       process.stdin.setRawMode(false);
       process.stdin.off('keypress', handleKeyPress);
-      process.stdin.pause();
     }
 
     async function handleKeyPress(str, key) {
@@ -98,9 +97,13 @@ function getFolder(dir) {
 }
 
 async function getInnerFolders(dir) {
-  const innerFolders = await(fs.readdir(dir, { withFileTypes: true }))
+  const entries = await fs.readdir(dir, {
+    withFileTypes: true
+  });
+
+  const innerFolders = entries
     .filter(entry => entry.isDirectory())
-    .map(entry => entry.name); 
+    .map(entry => entry.name);
 
   return innerFolders;
 }
